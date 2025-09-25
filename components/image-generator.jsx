@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { Wand2, Loader2, RefreshCw, Download, Copy, Moon, Sun } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 
 export default function ImageGenerator() {
   const [prompt, setPrompt] = useState('')
@@ -226,33 +225,27 @@ export default function ImageGenerator() {
           <h3 className="text-lg font-medium mb-4">Preview</h3>
 
           <div className="preview-inner flex items-center justify-center h-[420px]">
-            <AnimatePresence>
               {isGenerating && (
-                <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="loader-box flex flex-col items-center gap-3">
+                <div key="loader" className="loader-box flex flex-col items-center gap-3 animate-fade">
                   <Loader2 className="animate-spin" size={36} />
                   <p className="text-sm">Generating image, this may take a moment...</p>
-                </motion.div>
+                </div>
               )}
 
               {!isGenerating && imageData && (
-                <motion.img
+                <img
                   key={imageData.src}
                   src={imageData.src}
                   alt="Generated"
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
-                  transition={{ duration: 0.35 }}
-                  className="generated-image max-w-full max-h-full rounded-xl shadow-lg border border-white/10"
+                  className="generated-image max-w-full max-h-full rounded-xl shadow-lg border border-white/10 opacity-100 transition-all duration-300"
                 />
               )}
 
               {!isGenerating && !imageData && (
-                <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="empty-state text-center text-sm text-white/60">
+                <div key="empty" className="empty-state text-center text-sm text-white/60 opacity-100">
                   <p>Preview will appear here after generation</p>
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
           </div>
         </div>
 
@@ -281,6 +274,8 @@ export default function ImageGenerator() {
       <style jsx>{`
         .prompt-input { min-height: 72px }
         .generated-image { max-height: 420px }
+        .animate-fade { opacity: 0; animation: fadeIn 0.25s ease forwards }
+        @keyframes fadeIn { to { opacity: 1 } }
       `}</style>
     </div>
   )
