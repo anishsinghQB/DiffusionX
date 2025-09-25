@@ -1,11 +1,11 @@
 { pkgs, lib }:
 pkgs.buildNpmPackage {
-  pname = "nextjs-ollama-template";
+  pname = "stable-diffusion-image-generator";
   version = "1.0.0";
-  src = ../nextjs-app;
+  src = ../.;
 
   npmDeps = pkgs.importNpmLock {
-    npmRoot = ../nextjs-app;
+    npmRoot = ../.;
   };
   npmConfigHook = pkgs.importNpmLock.npmConfigHook;
 
@@ -21,20 +21,19 @@ pkgs.buildNpmPackage {
 
     mkdir -p $out/{share,bin}
 
-    cp -r .next/standalone $out/share/homepage/
-    # cp -r .env $out/share/homepage/
-    cp -r public $out/share/homepage/public
+    cp -r .next/standalone $out/share/stable-diffusion-app/
+    cp -r public $out/share/stable-diffusion-app/public
 
-    mkdir -p $out/share/homepage/.next
-    cp -r .next/static $out/share/homepage/.next/static
+    mkdir -p $out/share/stable-diffusion-app/.next
+    cp -r .next/static $out/share/stable-diffusion-app/.next/static
 
     # https://github.com/vercel/next.js/discussions/58864
-    ln -s /var/cache/nextjs-app $out/share/homepage/.next/cache
+    ln -s /var/cache/stable-diffusion-app $out/share/stable-diffusion-app/.next/cache
 
-    chmod +x $out/share/homepage/server.js
+    chmod +x $out/share/stable-diffusion-app/server.js
 
     # we set a default port to support "nix run ..."
-    makeWrapper $out/share/homepage/server.js $out/bin/nextjs-ollama-template \
+    makeWrapper $out/share/stable-diffusion-app/server.js $out/bin/stable-diffusion-image-generator \
       --set-default PORT 3000 \
       --set-default HOSTNAME 0.0.0.0
 
@@ -44,6 +43,11 @@ pkgs.buildNpmPackage {
   doDist = false;
 
   meta = {
-    mainProgram = "nextjs-ollama-template";
+    mainProgram = "stable-diffusion-image-generator";
+    description = "AI Image Generator using Stable Diffusion with OpenAI-compatible APIs";
+    homepage = "https://github.com/anishsinghQB/DiffusionX";
+    license = lib.licenses.mit;
+    maintainers = [ ];
+    platforms = lib.platforms.all;
   };
 }

@@ -5,13 +5,13 @@
   ...
 }:
 let
-  cfg = config.services.nextjs-ollama-template;
-  nextjs-ollama-template = pkgs.callPackage ./package.nix { };
+  cfg = config.services.stable-diffusion-app;
+  stable-diffusion-app = pkgs.callPackage ./package.nix { };
 in
 {
   options = {
-    services.nextjs-ollama-template = {
-      enable = lib.mkEnableOption "Enable the nextjs app";
+    services.stable-diffusion-app = {
+      enable = lib.mkEnableOption "Enable the Stable Diffusion AI Image Generator app";
 
       hostname = lib.mkOption {
         type = lib.types.str;
@@ -38,54 +38,59 @@ in
           Whether to open ports in the firewall for this application.
         '';
       };
+
+      huggingfaceApiKey = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = ''
+          HuggingFace API key for AI image generation. 
+          If not provided, the app will use fallback mode with placeholder images.
+        '';
+      };
+
+      replicateApiToken = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = ''
+          Replicate API token for AI image generation.
+          If not provided, the app will use fallback mode with placeholder images.
+        '';
+      };
     };
   };
 
-  config =
-    let
-      model = builtins.readFile ./../ollama-model.txt;
-    in
-    lib.mkIf cfg.enable {
-      users.groups.nextjs-ollama-template = { };
-      users.users.nextjs-ollama-template = {
-        isSystemUser = true;
-        group = "nextjs-ollama-template";
-      };
-
-      systemd.services.nextjs-ollama-template = {
-        wantedBy = [ "multi-user.target" ];
-        description = "Nextjs App.";
-        after = [ "network.target" ];
-        environment = {
-          HOSTNAME = cfg.hostname;
-          PORT = toString cfg.port;
-          MODEL = model;
-        };
-        serviceConfig = {
-          ExecStart = "${lib.getExe nextjs-ollama-template}";
-          User = "nextjs-ollama-template";
-          Group = "nextjs-ollama-template";
-          CacheDirectory = "nextjs-app";
-        };
-      };
-
-      networking.firewall = lib.mkIf cfg.openFirewall {
-        allowedTCPPorts = [ cfg.port ];
-      };
-
-      # Enable ollama with requested model loaded. Accessible in your app on http://localhost:11434 (but not exposed to outside environment).
-      nixpkgs.config.allowUnfree = true;
-
-      systemd.services.ollama.serviceConfig.DynamicUser = lib.mkForce false;
-      systemd.services.ollama.serviceConfig.ProtectHome = lib.mkForce false;
-      systemd.services.ollama.serviceConfig.StateDirectory = [ "ollama/models" ];
-      services.ollama = {
-        enable = true;
-        user = "ollama";
-        loadModels = [ model ];
-      };
-      systemd.services.ollama-model-loader.serviceConfig.User = "ollama";
-      systemd.services.ollama-model-loader.serviceConfig.Group = "ollama";
-      systemd.services.ollama-model-loader.serviceConfig.DynamicUser = lib.mkForce false;
+  config = lib.mkIf cfg.enable {
+    users.groups.stable-diffusion-app = { };
+    users.users.stable-diffusion-app = {
+      isSystemUser = true;
+      group = "stable-diffusion-app";
     };
+
+    systemd.services.stable-diffusion-app = {
+      wantedBy = [ "multi-user.target" ];
+      description = "Stable Diffusion AI Image Generator App";
+      after = [ "network.target" ];
+      environment = {
+        HOSTNAME = cfg.hostname;
+        PORT = toString cfg.port;
+        NODE_ENV = "production";
+      } // lib.optionalAttrs (cfg.huggingfaceApiKey != null) {
+        HUGGINGFACE_API_KEY = cfg.huggingfaceApiKey;
+      } // lib.optionalAttrs (cfg.replicateApiToken != null) {
+        REPLICATE_API_TOKEN = cfg.replicateApiToken;
+      };
+      serviceConfig = {
+        ExecStart = "${lib.getExe stable-diffusion-app}";
+        User = "stable-diffusion-app";
+        Group = "stable-diffusion-app";
+        CacheDirectory = "stable-diffusion-app";
+        Restart = "always";
+        RestartSec = "10s";
+      };
+    };
+
+    networking.firewall = lib.mkIf cfg.openFirewall {
+      allowedTCPPorts = [ cfg.port ];
+    };
+  };
 }

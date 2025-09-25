@@ -1,11 +1,12 @@
-# 🎨 AI Creative Studio - Stable Diffusion Image Generator
+# 🎨 DiffusionX - AI Image Generator
 
-A full-stack Next.js application that allows users to generate stunning images using AI-powered Stable Diffusion technology. Simply enter a text prompt and watch AI create beautiful artwork for you!
+A full-stack Next.js application that generates stunning images using AI-powered Stable Diffusion technology through OpenAI-compatible APIs. Simply enter a text prompt and watch AI create beautiful artwork for you!
 
 ![AI Creative Studio](https://img.shields.io/badge/AI-Stable%20Diffusion-purple)
 ![Next.js](https://img.shields.io/badge/Next.js-15.5.4-black)
 ![React](https://img.shields.io/badge/React-19.1.0-blue)
 ![TailwindCSS](https://img.shields.io/badge/Tailwind-CSS-38B2AC)
+![Nix](https://img.shields.io/badge/Nix-Flakes-blue)
 
 ## ✨ Features
 
@@ -16,9 +17,38 @@ A full-stack Next.js application that allows users to generate stunning images u
 - **⬇️ Download Images**: Save your generated artwork locally
 - **🎯 Negative Prompts**: Specify what you don't want in your images
 - **🎵 Voice Recording**: Bonus audio recording functionality
-- **⚡ Multiple AI Providers**: Support for Hugging Face and Replicate APIs
+- **⚡ OpenAI-Compatible APIs**: Support for Hugging Face and Replicate APIs
+- **📦 Nix Flakes Support**: Reproducible builds and deployments with Nix
+- **🐧 NixOS Module**: Easy deployment on NixOS systems
+- **🔧 Zero Configuration**: Fallback mode works without API keys
 
 ## 🚀 Quick Start
+
+### Option 1: Using Nix Flakes (Recommended)
+
+If you have Nix with flakes enabled:
+
+```bash
+# Clone the repository
+git clone https://github.com/anishsinghQB/DiffusionX.git
+cd DiffusionX/stable-diffusion
+
+# Run directly with nix (will build and start the app)
+nix run
+
+# Or build and install
+nix build
+./result/bin/stable-diffusion-image-generator
+```
+
+**Configure API keys**: Create a `.env.local` file or set environment variables:
+```bash
+export HUGGINGFACE_API_KEY="your_api_key_here"
+# or
+export REPLICATE_API_TOKEN="your_api_token_here"
+```
+
+### Option 2: Traditional Node.js Setup
 
 ### Prerequisites
 
@@ -29,8 +59,8 @@ A full-stack Next.js application that allows users to generate stunning images u
 
 1. **Clone the repository**
    ```bash
-   git clone <your-repo-url>
-   cd genai-starter-pack
+   git clone https://github.com/anishsinghQB/DiffusionX.git
+   cd DiffusionX/stable-diffusion
    ```
 
 2. **Install dependencies**
@@ -77,6 +107,50 @@ A full-stack Next.js application that allows users to generate stunning images u
 6. **Open your browser**
    Navigate to [http://localhost:3000](http://localhost:3000)
 
+## 📦 NixOS Deployment
+
+### Using the NixOS Module
+
+Add to your NixOS configuration:
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    diffusionx.url = "github:anishsinghQB/DiffusionX?dir=stable-diffusion";
+  };
+
+  outputs = { self, nixpkgs, diffusionx, ... }: {
+    nixosConfigurations.your-host = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        diffusionx.nixosModules.default
+        {
+          services.stable-diffusion-app = {
+            enable = true;
+            port = 3000;
+            hostname = "0.0.0.0";
+            # Optional: Add your API keys here or use environment variables
+            huggingfaceApiKey = "your_huggingface_api_key";
+            # replicateApiToken = "your_replicate_api_token";
+          };
+        }
+      ];
+    };
+  };
+}
+```
+
+### Direct Flake Usage
+
+```bash
+# Add to your system flake inputs
+inputs.diffusionx.url = "github:anishsinghQB/DiffusionX?dir=stable-diffusion";
+
+# Then in your modules:
+imports = [ diffusionx.nixosModules.default ];
+```
+
 ## 🛠️ API Configuration
 
 ### Hugging Face Setup (Free Option)
@@ -121,21 +195,52 @@ If no API keys are configured, the app will generate placeholder images with you
 ## 🏗️ Project Structure
 
 ```
-genai-starter-pack/
+stable-diffusion/
 ├── app/
 │   ├── api/
 │   │   └── generate-image/
 │   │       └── route.js          # AI image generation API
 │   ├── globals.css               # Global styles
 │   ├── layout.jsx               # Root layout
-│   └── page.jsx                 # Main page
-├── components/
-│   ├── image-generator.jsx      # Main image generation component
-│   └── voice-recorder.jsx       # Voice recording component
+│   └── page.jsx                 # Main page component
+├── nix/
+│   ├── package.nix              # Nix package definition
+│   └── nixos-module.nix         # NixOS service module
 ├── public/                      # Static assets
-├── .env.example                 # Environment template
-└── package.json
+├── flake.nix                    # Nix flake configuration
+├── package.json                 # Node.js dependencies
+└── README.md
 ```
+
+## 🔧 Nix Development
+
+### Development Shell
+
+```bash
+# Enter development environment with all dependencies
+nix develop
+
+# Build the package
+nix build
+
+# Run the application
+nix run
+```
+
+### Package Details
+
+The Nix package (`nix/package.nix`) creates:
+- **Binary**: `stable-diffusion-image-generator` 
+- **Service**: Systemd service for NixOS
+- **Cache**: Automatic Next.js cache management
+- **Dependencies**: All Node.js dependencies included
+
+### Available Nix Outputs
+
+- `nix run` - Run the application directly
+- `nix build .#dockerImage` - Build Docker container
+- `nix develop` - Enter development shell
+- `nix build .#stable-diffusion-app` - Build just the app package
 
 ## 🔧 Advanced Configuration
 
@@ -190,6 +295,33 @@ Optional:
 
 ## 🚀 Deployment
 
+### NixOS (Recommended)
+
+Use the provided NixOS module for production deployments:
+
+```nix
+services.stable-diffusion-app = {
+  enable = true;
+  port = 8080;
+  hostname = "127.0.0.1";  # Internal only
+  openFirewall = false;    # Use reverse proxy
+  huggingfaceApiKey = config.age.secrets.huggingface-api-key.path;
+};
+```
+
+### Docker with Nix
+
+```bash
+# Build Docker image with Nix
+nix build .#dockerImage
+docker load < result
+
+# Run container
+docker run -p 3000:3000 -e HUGGINGFACE_API_KEY=your_key stable-diffusion-app
+```
+
+### Traditional Deployment
+
 ### Vercel (Recommended)
 
 1. Push to GitHub
@@ -202,8 +334,9 @@ Optional:
 ### Other Platforms
 
 - **Netlify**: Configure build command `npm run build`
-- **Railway**: Auto-deploys from GitHub
-- **Docker**: Use included configuration
+- **Railway**: Auto-deploys from GitHub  
+- **Fly.io**: Use `flyctl` for deployment
+- **NixOS**: Use the provided flake and module
 
 ## 🔍 Troubleshooting
 
@@ -223,6 +356,16 @@ Optional:
    - Lower the steps count
    - Try different time of day (less API load)
 
+4. **Nix build failures**
+   - Ensure you have Nix with flakes enabled
+   - Run `nix flake update` to update inputs
+   - Check that `package-lock.json` is present
+
+5. **NixOS service not starting**
+   - Check `journalctl -u stable-diffusion-app`
+   - Verify API keys are properly set
+   - Ensure port is not already in use
+
 ### Debug Mode
 
 Set `NODE_ENV=development` to see detailed error logs in the console.
@@ -241,11 +384,13 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🙏 Acknowledgments
 
-- [Stability AI](https://stability.ai/) for Stable Diffusion
-- [Hugging Face](https://huggingface.co/) for their amazing AI infrastructure
+- [Stability AI](https://stability.ai/) for Stable Diffusion technology
+- [Hugging Face](https://huggingface.co/) for their amazing AI infrastructure and free tier
 - [Replicate](https://replicate.com/) for easy AI model deployment
-- [Next.js](https://nextjs.org/) team for the incredible framework
+- [Next.js](https://nextjs.org/) team for the incredible React framework
 - [Tailwind CSS](https://tailwindcss.com/) for the beautiful styling system
+- [NixOS](https://nixos.org/) community for reproducible builds and deployments
+- [OpenAI](https://openai.com/) for pioneering API-compatible AI services
 
 ## 📚 Learn More
 

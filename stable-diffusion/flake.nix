@@ -1,5 +1,5 @@
 {
-  description = "Nextjs + Ollama app that runs on OpenxAI!";
+  description = "Next.js AI Image Generator with OpenAI-compatible APIs (HuggingFace, Replicate) - Stable Diffusion Image Generation";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -32,27 +32,48 @@
           package = pkgs.callPackage ./nix/package.nix { };
         in
         {
-          default =
-            let
-              nextjs = pkgs.lib.getExe package;
-              ollama = pkgs.lib.getExe pkgs.ollama;
-            in
-            pkgs.writeShellScriptBin "run-nextjs-ollama-template" ''
-              MODEL=$(cat ./ollama-model.txt)
+          default = package;
+          stable-diffusion-app = package;
+          
+          dockerImage = pkgs.dockerTools.buildLayeredImage {
+            name = "diffusionx";
+            tag = "latest";
+            contents = [ package pkgs.bash pkgs.coreutils ];
+            config = {
+              Cmd = [ "${pkgs.lib.getExe package}" ];
+              ExposedPorts = { "3000/tcp" = { }; };
+              Env = [
+                "NODE_ENV=production"
+                "PORT=3000"
+                "HOSTNAME=0.0.0.0"
+              ];
+            };
+          };
+        }
+      );
 
-              ${ollama} serve &
-              OLLAMA_PID=$!
-
-              sleep 0.1
-              ${ollama} pull $MODEL
-
-              export MODEL
-              ${nextjs}
-
-              kill $OLLAMA_PID || true
+      devShells = eachSystem (
+        { pkgs, ... }: {
+          default = pkgs.mkShell {
+            name = "stable-diffusion-dev";
+            buildInputs = with pkgs; [
+              nodejs_20
+              nodePackages.npm
+              nodePackages.pnpm
+              git
+            ];
+            shellHook = ''
+              echo "🎨 DiffusionX Development Environment"
+              echo "Node.js: $(node --version)"
+              echo "npm: $(npm --version)"
+              echo ""
+              echo "Available commands:"
+              echo "  npm run dev    - Start development server"
+              echo "  npm run build  - Build for production"
+              echo "  nix build      - Build with Nix"
+              echo "  nix run        - Run the application"
             '';
-          nextjs = package;
-          ollama = pkgs.ollama;
+          };
         }
       );
 
