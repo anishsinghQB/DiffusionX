@@ -1,227 +1,203 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Wand2, Loader2, RefreshCw, Download, Copy } from "lucide-react";
+import { Wand2, Loader2, RefreshCw, Download, Copy, Send } from "lucide-react";
 
 export default function ImageGenerator() {
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [imageData, setImageData] = useState(null);
+  const [images, setImages] = useState([]); // [{src, id}]
   const [error, setError] = useState("");
-  const [history, setHistory] = useState([]);
+  const [showConversation, setShowConversation] = useState(false);
 
   const lastPromptRef = useRef("");
 
   useEffect(() => {
-    localStorage.setItem("ai_image_history", JSON.stringify(history));
-  }, [history]);
+    // hydrate history if needed later
+  }, []);
 
-  const generateImage = async () => {
-    if (!prompt || prompt.trim().length === 0) {
+  const generateMultiple = async (count = 4) => {
+    if (!prompt || !prompt.trim()) {
       setError("Please enter a prompt");
       return;
     }
 
-    setIsGenerating(true);
     setError("");
-    setImageData(null);
-
-    const payload = {
-      prompt: prompt.trim(),
-      width: 768,
-      height: 768,
-      steps: 20,
-      guidance_scale: 7.5,
-      seed: -1,
-      negative_prompt: "",
-    };
+    setIsGenerating(true);
+    setImages(Array.from({ length: count }).map((_, i) => ({ id: i, loading: true })));
 
     try {
-      const res = await fetch("/api/generate-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const payload = {
+        prompt: prompt.trim(),
+        width: 512,
+        height: 512,
+        steps: 20,
+        guidance_scale: 7.5,
+        seed: -1,
+        negative_prompt: "",
+      };
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Generation failed");
+      // Fire requests in parallel
+      const requests = Array.from({ length: count }).map(() =>
+        fetch("/api/generate-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }).then(async (res) => {
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Generation failed");
+          return data.image;
+        })
+      );
 
-      setImageData({
-        src: data.image,
-        prompt: data.prompt,
-        settings: data.settings,
-        timestamp: Date.now(),
-      });
+      const results = await Promise.all(requests);
 
-      lastPromptRef.current = data.prompt;
-      setHistory((h) => [
-        {
-          id: Date.now().toString(),
-          image: data.image,
-          prompt: data.prompt,
-          settings: data.settings,
-          createdAt: new Date().toISOString(),
-        },
-        ...h,
-      ]);
+      setImages(results.map((src, i) => ({ id: i, src })));
+      lastPromptRef.current = prompt.trim();
+      setShowConversation(true);
     } catch (err) {
-      console.error("Generation error", err);
-      setError(err.message || "Generation failed");
+      console.error(err);
+      setError(err.message || "Failed to generate images");
+      setImages([]);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const downloadImage = () => {
-    if (!imageData) return;
+  const handleSubmit = (e) => {
+    e && e.preventDefault();
+    if (!isGenerating) generateMultiple(4);
+  };
+
+  const copyPrompt = async () => {
+    if (!lastPromptRef.current && !prompt) return;
+    try {
+      await navigator.clipboard.writeText(lastPromptRef.current || prompt);
+    } catch (e) {
+      console.error("copy failed", e);
+    }
+  };
+
+  const downloadImage = (src) => {
+    if (!src) return;
     const a = document.createElement("a");
-    a.href = imageData.src;
-    a.download = `ai-image-${Date.now()}.png`;
+    a.href = src;
+    a.download = `openxai-image-${Date.now()}.png`;
     document.body.appendChild(a);
     a.click();
     a.remove();
   };
 
-  const copyPrompt = async () => {
+  const regenerate = () => {
     if (!lastPromptRef.current) return;
-    try {
-      await navigator.clipboard.writeText(lastPromptRef.current);
-    } catch (e) {
-      console.error("Copy failed", e);
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!isGenerating) generateImage();
+    setPrompt(lastPromptRef.current);
+    generateMultiple(4);
   };
 
   return (
-    <div className="ai-generator-root w-full text-gray-50 pb-36">
-      {/* Top bar title */}
-      <header className="max-w-6xl mx-auto px-4 pt-8 pb-4">
-        <h1 className="generator-title text-3xl md:text-4xl font-extrabold drop-shadow-sm">
-          🎨 AI Creative Studio
-        </h1>
-        <p className="mt-1 text-white/80 text-sm md:text-base">
-          Generate beautiful images from your imagination.
-        </p>
-      </header>
-
-      {/* Central large preview */}
-      <section className="w-full">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="preview-card bg-white/10 backdrop-blur rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
-            <div className="relative flex items-center justify-center h-[60vh] max-h-[720px]">
-              {isGenerating && (
-                <div className="flex flex-col items-center gap-3 animate-fade">
-                  <Loader2 className="animate-spin text-white/90" size={40} />
-                  <p className="text-sm text-white/80">Generating image…</p>
-                  <div className="mt-2 grid grid-cols-6 gap-2 opacity-70">
-                    {Array.from({ length: 12 }).map((_, i) => (
-                      <span key={i} className="h-2 w-6 rounded-full bg-white/20 animate-pulse" />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {!isGenerating && imageData && (
-                <img
-                  src={imageData.src}
-                  alt="Generated"
-                  className="max-w-full max-h-full object-contain rounded-xl shadow-2xl transition-all duration-300"
-                />
-              )}
-
-              {!isGenerating && !imageData && (
-                <div className="text-center text-white/80 px-6">
-                  <p className="text-base md:text-lg">Your image will appear here</p>
-                  <p className="text-sm opacity-80 mt-1">
-                    Describe what you want to see, then hit Generate.
-                  </p>
-                </div>
-              )}
-            </div>
+    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-600 to-purple-600 text-gray-900">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Top bar with OpenXAI brand */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center text-indigo-600 font-bold">OX</div>
+            <div className="text-white font-semibold">OpenXAI</div>
           </div>
+          <div className="text-white/90 text-sm">AI Image Creator</div>
         </div>
-      </section>
 
-      {/* Sticky bottom composer */}
-      <form
-        onSubmit={handleSubmit}
-        className="composer-bar fixed inset-x-0 bottom-0 z-50 px-4 pb-4 pt-2"
-      >
-        <div className="max-w-5xl mx-auto bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/30 dark:border-slate-700 rounded-2xl shadow-2xl">
-          <div className="flex flex-col md:flex-row items-end md:items-center gap-3 p-3 md:p-4">
-            <label htmlFor="prompt" className="sr-only">
-              Prompt
-            </label>
-            <textarea
-              id="prompt"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe the image you want to generate…"
-              rows={2}
-              className="flex-1 w-full md:min-h-[56px] resize-none rounded-xl bg-white/70 dark:bg-slate-800/70 border border-white/40 dark:border-slate-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-400/70 shadow-md p-4"
-            />
-
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              <button
-                type="submit"
-                disabled={isGenerating}
-                className="inline-flex flex-shrink-0 items-center gap-2 bg-gradient-to-r from-indigo-600 via-pink-500 to-amber-500 hover:brightness-110 active:scale-[0.99] transition-all duration-200 text-white font-semibold px-5 py-3 rounded-full shadow-xl disabled:opacity-60 disabled:pointer-events-none"
-                aria-label={isGenerating ? "Generating" : "Generate image"}
-              >
-                {isGenerating ? <Loader2 className="animate-spin" /> : <Wand2 />}
-                <span>{isGenerating ? "Generating" : "Generate"}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => !isGenerating && generateImage()}
-                className="flex items-center gap-2 px-4 py-3 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 transition-colors shadow-md rounded-full text-gray-800 dark:text-gray-100 border border-white/40 dark:border-slate-700"
-                aria-label="Regenerate"
-                disabled={isGenerating || !prompt.trim()}
-              >
-                <RefreshCw size={18} />
-              </button>
-
-              <button
-                type="button"
-                onClick={copyPrompt}
-                className="flex items-center gap-2 px-4 py-3 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 transition-colors shadow-md rounded-full text-gray-800 dark:text-gray-100 border border-white/40 dark:border-slate-700"
-                aria-label="Copy prompt"
-                disabled={!prompt.trim()}
-              >
-                <Copy size={18} />
-              </button>
-
-              <button
-                type="button"
-                onClick={downloadImage}
-                className="flex items-center gap-2 px-4 py-3 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 transition-colors shadow-md rounded-full text-gray-800 dark:text-gray-100 border border-white/40 dark:border-slate-700"
-                aria-label="Download image"
-                disabled={!imageData}
-              >
-                <Download size={18} />
-              </button>
+        {/* Conversation area */}
+        <div className="relative">
+          {/* user blue bubble top-right when conversation present */}
+          {showConversation && (
+            <div className="flex justify-end mb-6">
+              <div className="max-w-md bg-blue-500 text-white px-4 py-3 rounded-2xl shadow-lg">
+                {lastPromptRef.current}
+              </div>
             </div>
-          </div>
+          )}
 
-          {error && (
-            <div className="px-4 pb-3 -mt-1">
-              <p className="text-red-600 text-sm bg-red-50/80 dark:bg-red-950/30 border border-red-200/70 dark:border-red-900/50 rounded-lg px-3 py-2">
-                {error}
-              </p>
+          {/* assistant reply bubble */}
+          {showConversation && (
+            <div className="flex justify-start mb-4">
+              <div className="max-w-2xl bg-white rounded-2xl p-4 shadow-md text-gray-800">
+                <p className="mb-3">Sure, I’ll use Image Creator to draw that for you.</p>
+
+                {/* 2x2 grid */}
+                <div className="mt-2 grid grid-cols-2 gap-3">
+                  {images.length === 0 && !isGenerating && (
+                    <div className="col-span-2 text-sm text-gray-500">No images yet — generate to see results.</div>
+                  )}
+
+                  {isGenerating && images.length > 0 && (
+                    Array.from({ length: images.length }).map((_, i) => (
+                      <div key={i} className="h-40 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <Loader2 className="animate-spin text-indigo-500" />
+                      </div>
+                    ))
+                  )}
+
+                  {!isGenerating && images.map((im) => (
+                    <div key={im.id} className="rounded-md overflow-hidden bg-gray-50 border border-gray-200">
+                      <img src={im.src} alt={`result-${im.id}`} className="w-full h-40 object-cover" />
+                    </div>
+                  ))}
+
+                </div>
+
+                <div className="mt-3 flex items-center gap-2">
+                  <button className="text-sm text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Change the astronaut to a cat</button>
+                  <button className="text-sm text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Change the sunflowers to roses</button>
+                  <button className="text-sm text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Add a moon in the background</button>
+                </div>
+
+                <div className="mt-3 text-xs text-gray-400">Made with Image Creator</div>
+              </div>
+            </div>
+          )}
+
+          {/* If no conversation yet, show a centered mock similar to Bing blank state */}
+          {!showConversation && (
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-12 text-center text-white/80 shadow-lg">
+              <h2 className="text-2xl font-semibold mb-2">Welcome to OpenXAI</h2>
+              <p className="max-w-2xl mx-auto">Type a prompt below to generate a set of creative images. Try: “An astronaut walking through a galaxy of sunflowers”.</p>
             </div>
           )}
         </div>
+
+        {/* Utility row for download/copy when images present */}
+        {images.length > 0 && (
+          <div className="mt-4 flex gap-3">
+            <button onClick={() => images.forEach((im) => im.src && downloadImage(im.src))} className="px-3 py-2 bg-white/90 rounded-md shadow">Download All</button>
+            <button onClick={copyPrompt} className="px-3 py-2 bg-white/90 rounded-md shadow">Copy Prompt</button>
+            <button onClick={regenerate} className="px-3 py-2 bg-white/90 rounded-md shadow">Regenerate</button>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom centered pill input */}
+      <form onSubmit={handleSubmit} className="fixed left-0 right-0 bottom-6 flex justify-center pointer-events-none">
+        <div className="pointer-events-auto flex items-center gap-3 bg-white rounded-full px-3 py-2 shadow-xl w-[min(880px,90%)]">
+          <button type="button" onClick={handleSubmit} className="bg-blue-600 text-white rounded-full p-3 shadow-md">
+            <Wand2 size={18} />
+          </button>
+
+          <input
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Can you create me an image of an astronaut walking through a galaxy of sunflowers?"
+            className="flex-1 bg-transparent outline-none px-3 text-gray-800"
+          />
+
+          <button type="submit" disabled={isGenerating} className="bg-indigo-600 text-white px-4 py-2 rounded-full font-semibold">
+            {isGenerating ? <Loader2 className="animate-spin" /> : <span className="flex items-center gap-2"><Send size={14}/> Generate</span>}
+          </button>
+        </div>
       </form>
 
-      <style jsx>{`
-        .animate-fade { opacity: 0; animation: fadeIn 0.3s ease forwards; }
-        @keyframes fadeIn { to { opacity: 1; } }
-      `}</style>
+      <div className="fixed left-6 bottom-6">
+        <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-xl">✦</div>
+      </div>
     </div>
   );
 }
