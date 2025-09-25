@@ -152,83 +152,83 @@ export default function ImageGenerator() {
 
   return (
     <div className="ai-generator-root w-full flex flex-col items-center gap-6 text-gray-900 dark:text-gray-100">
-      <div className="controls-card w-full bg-white/6 dark:bg-black/60 backdrop-blur-sm border border-white/8 rounded-2xl p-6">
+      <div className="controls-card w-full bg-gradient-to-r from-rose-50 via-indigo-50 to-teal-50 dark:from-slate-800 dark:via-slate-900 dark:to-black border border-transparent rounded-2xl p-6 shadow-lg">
         <div className="header flex items-center justify-between mb-4">
-          <h2 className="generator-title text-2xl font-semibold">Create artwork</h2>
+          <h2 className="generator-title text-2xl font-extrabold text-gray-800 dark:text-gray-100">Create artwork</h2>
           <div className="header-actions flex items-center gap-2">
-            <button onClick={toggleTheme} aria-label="Toggle theme" className="icon-btn p-2 rounded-md bg-white/5 hover:bg-white/10">
+            <button onClick={toggleTheme} aria-label="Toggle theme" className="icon-btn p-2 rounded-md bg-white/90 dark:bg-black/40 shadow-sm">
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
           </div>
         </div>
 
-        <label htmlFor="prompt" className="block text-sm font-medium mb-2">Image Prompt</label>
+        <label htmlFor="prompt" className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Image Prompt</label>
         <textarea
           id="prompt"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="Describe the image you want to generate..."
-          className="prompt-input w-full p-4 rounded-xl bg-white/5 border border-white/8 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+          className="prompt-input w-full p-4 rounded-xl bg-white shadow-sm border border-gray-200 dark:bg-slate-700 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-rose-400 resize-none text-gray-800 dark:text-gray-100"
           rows={3}
         />
 
-        <div className="options-grid grid grid-cols-2 gap-4 mt-4">
+        <div className="options-grid grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div className="option">
-            <label className="block text-sm mb-1">Width</label>
-            <input type="number" value={width} onChange={(e) => setWidth(Number(e.target.value))} className="input-field w-full p-2 rounded-md bg-white/4 border border-white/6" />
+            <label className="block text-sm mb-1 text-gray-600 dark:text-gray-300">Width</label>
+            <input inputMode="numeric" type="number" value={width} onChange={(e) => setWidth(Number(e.target.value))} className="input-field w-full p-2 rounded-md bg-white border border-gray-200 dark:bg-slate-700 dark:border-slate-600" />
           </div>
           <div className="option">
-            <label className="block text-sm mb-1">Height</label>
-            <input type="number" value={height} onChange={(e) => setHeight(Number(e.target.value))} className="input-field w-full p-2 rounded-md bg-white/4 border border-white/6" />
+            <label className="block text-sm mb-1 text-gray-600 dark:text-gray-300">Height</label>
+            <input inputMode="numeric" type="number" value={height} onChange={(e) => setHeight(Number(e.target.value))} className="input-field w-full p-2 rounded-md bg-white border border-gray-200 dark:bg-slate-700 dark:border-slate-600" />
           </div>
           <div className="option">
-            <label className="block text-sm mb-1">Steps</label>
-            <input type="number" value={steps} onChange={(e) => setSteps(Number(e.target.value))} className="input-field w-full p-2 rounded-md bg-white/4 border border-white/6" />
+            <label className="block text-sm mb-1 text-gray-600 dark:text-gray-300">Steps</label>
+            <input inputMode="numeric" type="number" value={steps} onChange={(e) => setSteps(Number(e.target.value))} className="input-field w-full p-2 rounded-md bg-white border border-gray-200 dark:bg-slate-700 dark:border-slate-600" />
           </div>
           <div className="option">
-            <label className="block text-sm mb-1">Guidance</label>
-            <input step="0.1" type="number" value={guidanceScale} onChange={(e) => setGuidanceScale(Number(e.target.value))} className="input-field w-full p-2 rounded-md bg-white/4 border border-white/6" />
+            <label className="block text-sm mb-1 text-gray-600 dark:text-gray-300">Guidance</label>
+            <input step="0.1" type="number" value={guidanceScale} onChange={(e) => setGuidanceScale(Number(e.target.value))} className="input-field w-full p-2 rounded-md bg-white border border-gray-200 dark:bg-slate-700 dark:border-slate-600" />
           </div>
-          <div className="option col-span-2">
-            <label className="block text-sm mb-1">Seed (-1 for random)</label>
-            <input type="number" value={seed} onChange={(e) => setSeed(Number(e.target.value))} className="input-field w-full p-2 rounded-md bg-white/4 border border-white/6" />
+          <div className="option col-span-1 md:col-span-2">
+            <label className="block text-sm mb-1 text-gray-600 dark:text-gray-300">Seed (-1 for random)</label>
+            <input type="number" value={seed} onChange={(e) => setSeed(Number(e.target.value))} className="input-field w-full p-2 rounded-md bg-white border border-gray-200 dark:bg-slate-700 dark:border-slate-600" />
           </div>
         </div>
 
-        <div className="actions flex items-center gap-3 mt-5">
-          <button onClick={() => generateImage()} className="generate-btn inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-full">
+        <div className="actions flex flex-wrap items-center gap-3 mt-5">
+          <button onClick={() => generateImage()} className="generate-btn inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 via-pink-500 to-amber-500 hover:scale-105 transform transition duration-200 text-white font-semibold px-4 py-2 rounded-full shadow-xl">
             {isGenerating ? <Loader2 className="animate-spin" /> : <Wand2 />}
             <span>{isGenerating ? 'Generating...' : 'Generate Image'}</span>
           </button>
 
-          <button onClick={refreshImage} className="inline-flex items-center gap-2 bg-white/6 hover:bg-white/10 text-white px-3 py-2 rounded-md">
+          <button onClick={refreshImage} className="inline-flex items-center gap-2 bg-white/90 hover:bg-white text-gray-800 px-3 py-2 rounded-md shadow-sm">
             <RefreshCw size={16} />
             <span className="text-sm">Refresh</span>
           </button>
 
-          <button onClick={copyPrompt} className="inline-flex items-center gap-2 bg-white/6 hover:bg-white/10 text-white px-3 py-2 rounded-md">
+          <button onClick={copyPrompt} className="inline-flex items-center gap-2 bg-white/90 hover:bg-white text-gray-800 px-3 py-2 rounded-md shadow-sm">
             <Copy size={16} />
             <span className="text-sm">Copy Prompt</span>
           </button>
 
-          <button onClick={downloadImage} className="inline-flex items-center gap-2 bg-white/6 hover:bg-white/10 text-white px-3 py-2 rounded-md">
+          <button onClick={downloadImage} className="inline-flex items-center gap-2 bg-white/90 hover:bg-white text-gray-800 px-3 py-2 rounded-md shadow-sm">
             <Download size={16} />
             <span className="text-sm">Download</span>
           </button>
         </div>
 
-        {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
       </div>
 
       <div className="preview-and-history w-full flex flex-col lg:flex-row gap-6">
-        <div className="preview-card flex-1 bg-white/6 dark:bg-black/60 border border-white/6 rounded-2xl p-6">
-          <h3 className="text-lg font-medium mb-4">Preview</h3>
+        <div className="preview-card flex-1 bg-white rounded-2xl p-6 shadow-inner border border-gray-100 dark:bg-slate-900 dark:border-slate-700">
+          <h3 className="text-lg font-medium mb-4 text-gray-800 dark:text-gray-100">Preview</h3>
 
-          <div className="preview-inner flex items-center justify-center h-[420px]">
+          <div className="preview-inner flex items-center justify-center h-[420px] bg-gradient-to-b from-white to-transparent rounded-lg overflow-hidden">
               {isGenerating && (
                 <div key="loader" className="loader-box flex flex-col items-center gap-3 animate-fade">
-                  <Loader2 className="animate-spin" size={36} />
-                  <p className="text-sm">Generating image, this may take a moment...</p>
+                  <Loader2 className="animate-spin text-indigo-500" size={36} />
+                  <p className="text-sm text-gray-600">Generating image, this may take a moment...</p>
                 </div>
               )}
 
@@ -237,33 +237,33 @@ export default function ImageGenerator() {
                   key={imageData.src}
                   src={imageData.src}
                   alt="Generated"
-                  className="generated-image max-w-full max-h-full rounded-xl shadow-lg border border-white/10 opacity-100 transition-all duration-300"
+                  className="generated-image max-w-full max-h-full rounded-xl shadow-2xl border border-gray-200"
                 />
               )}
 
               {!isGenerating && !imageData && (
-                <div key="empty" className="empty-state text-center text-sm text-white/60 opacity-100">
+                <div key="empty" className="empty-state text-center text-sm text-gray-500">
                   <p>Preview will appear here after generation</p>
                 </div>
               )}
           </div>
         </div>
 
-        <div className="history-card w-full lg:w-96 bg-white/6 dark:bg-black/60 border border-white/6 rounded-2xl p-4">
+        <div className="history-card w-full lg:w-96 bg-white rounded-2xl p-4 shadow-inner border border-gray-100 dark:bg-slate-900 dark:border-slate-700">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-medium">History</h3>
-            <button onClick={clearHistory} className="text-sm text-red-400 hover:underline">Clear</button>
+            <h3 className="text-lg font-medium text-gray-800 dark:text-gray-100">History</h3>
+            <button onClick={clearHistory} className="text-sm text-red-500 hover:underline">Clear</button>
           </div>
 
           <div className="history-list flex flex-col gap-3 max-h-[420px] overflow-auto">
-            {history.length === 0 && <p className="text-sm text-white/60">No generated images yet.</p>}
+            {history.length === 0 && <p className="text-sm text-gray-500">No generated images yet.</p>}
 
             {history.map((item) => (
-              <div key={item.id} className="history-item flex items-center gap-3 p-2 rounded-md hover:bg-white/5 cursor-pointer" onClick={() => selectHistoryItem(item)}>
-                <img src={item.image} alt={item.prompt} className="w-16 h-10 object-cover rounded-md border border-white/10" />
+              <div key={item.id} className="history-item flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer" onClick={() => selectHistoryItem(item)}>
+                <img src={item.image} alt={item.prompt} className="w-16 h-10 object-cover rounded-md border border-gray-200" />
                 <div className="flex-1 text-sm">
-                  <div className="text-white/90 truncate">{item.prompt}</div>
-                  <div className="text-xs text-white/60">{new Date(item.createdAt).toLocaleString()}</div>
+                  <div className="text-gray-800 truncate">{item.prompt}</div>
+                  <div className="text-xs text-gray-500">{new Date(item.createdAt).toLocaleString()}</div>
                 </div>
               </div>
             ))}
