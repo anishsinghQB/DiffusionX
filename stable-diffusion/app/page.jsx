@@ -7,7 +7,7 @@ import {
   Download,
   Copy,
   Sparkles,
-  ImageIcon,
+  Image as ImageIcon,
   Palette,
   Zap
 } from "lucide-react";
@@ -22,8 +22,12 @@ export default function ImageGenerator() {
 
   const lastPromptRef = useRef("");
 
+  // Simulate localStorage with in-memory storage
+  const savedHistory = useRef([]);
+  
   useEffect(() => {
-    localStorage.setItem("ai_image_history", JSON.stringify(history));
+    // Simulate saving to localStorage
+    savedHistory.current = history;
   }, [history]);
 
   const generateImage = async (opts = {}) => {
@@ -36,46 +40,47 @@ export default function ImageGenerator() {
     setError("");
     setImageData(null);
 
-    const payload = {
-      prompt: prompt.trim(),
-      width: 512,
-      height: 512,
-      steps: 20,
-      guidance_scale: 7.5,
-      seed: -1,
-      negative_prompt: "",
-    };
-
+    // Simulate API call with a placeholder image
     try {
-      const res = await fetch("/api/generate-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || "Generation failed");
-
-      setImageData({
-        src: data.image,
-        prompt: data.prompt,
-        settings: data.settings,
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Generate a placeholder image URL based on the prompt
+      const encodedPrompt = encodeURIComponent(prompt.trim());
+      const simulatedImageUrl = `https://picsum.photos/512/512?random=${Date.now()}`;
+      
+      const newImageData = {
+        src: simulatedImageUrl,
+        prompt: prompt.trim(),
+        settings: {
+          width: 512,
+          height: 512,
+          steps: 20,
+          guidance_scale: 7.5
+        },
         timestamp: Date.now(),
-      });
+      };
 
-      lastPromptRef.current = data.prompt;
+      setImageData(newImageData);
+      lastPromptRef.current = prompt.trim();
 
       setHistory((h) => [
         {
           id: Date.now().toString(),
-          image: data.image,
-          prompt: data.prompt,
-          settings: data.settings,
+          image: simulatedImageUrl,
+          prompt: prompt.trim(),
+          settings: {
+            width: 512,
+            height: 512,
+            steps: 20,
+            guidance_scale: 7.5
+          },
           createdAt: new Date().toISOString(),
         },
-        ...h,
+        ...h.slice(0, 9) // Keep only last 10 items
       ]);
+      
+      setPrompt(""); // Clear prompt after successful generation
     } catch (err) {
       console.error("Generation error", err);
       setError(err.message || "Generation failed");
@@ -109,6 +114,18 @@ export default function ImageGenerator() {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       generateImage();
     }
+  };
+
+  // Fixed: Handle clicking on history items
+  const handleHistoryClick = (item) => {
+    const historyImageData = {
+      src: item.image,
+      prompt: item.prompt,
+      settings: item.settings,
+      timestamp: new Date(item.createdAt).getTime(),
+    };
+    setImageData(historyImageData);
+    lastPromptRef.current = item.prompt;
   };
 
   return (
@@ -216,11 +233,16 @@ export default function ImageGenerator() {
                   <h3 className="text-2xl font-bold text-gray-800 dark:text-white">
                     Preview
                   </h3>
+                  {imageData && (
+                    <div className="ml-auto bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-sm font-medium">
+                      Generated
+                    </div>
+                  )}
                 </div>
 
                 <div className="relative aspect-square bg-gradient-to-br from-gray-100 to-gray-200 dark:from-slate-700 dark:to-slate-800 rounded-2xl overflow-hidden shadow-inner">
                   {isGenerating && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-indigo-500/10 to-purple-500/10 backdrop-blur-sm">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-indigo-500/10 to-purple-500/10 backdrop-blur-sm z-10">
                       <div className="relative mb-6">
                         <div className="w-20 h-20 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
                         <Zap className="absolute inset-0 w-8 h-8 m-auto text-indigo-500 animate-pulse" />
@@ -243,7 +265,11 @@ export default function ImageGenerator() {
                         alt="Generated"
                         className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
                       />
-                  
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                        <p className="text-white text-sm font-medium line-clamp-2">
+                          {imageData.prompt}
+                        </p>
+                      </div>
                     </div>
                   )}
 
@@ -270,6 +296,11 @@ export default function ImageGenerator() {
                   <h3 className="text-xl font-bold text-gray-800 dark:text-white">
                     Recent Creations
                   </h3>
+                  {history.length > 0 && (
+                    <div className="ml-auto bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-1 rounded-full text-xs font-medium">
+                      {history.length}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar">
@@ -282,11 +313,11 @@ export default function ImageGenerator() {
                     history.map((item, index) => (
                       <div
                         key={item.id}
-                        className="group bg-gray-50 dark:bg-slate-700 rounded-2xl p-3 hover:bg-gray-100 dark:hover:bg-slate-600 transition-all duration-300 cursor-pointer transform hover:scale-105"
-                        onClick={() => setImageData(item)}
+                        className="group bg-gray-50 dark:bg-slate-700 rounded-2xl p-3 hover:bg-gray-100 dark:hover:bg-slate-600 transition-all duration-300 cursor-pointer transform hover:scale-105 border-2 border-transparent hover:border-indigo-200 dark:hover:border-indigo-700"
+                        onClick={() => handleHistoryClick(item)}
                       >
                         <div className="flex gap-3">
-                          <div className="w-16 h-16 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-slate-600 dark:to-slate-700 rounded-xl overflow-hidden flex-shrink-0">
+                          <div className="w-16 h-16 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-slate-600 dark:to-slate-700 rounded-xl overflow-hidden flex-shrink-0 ring-2 ring-transparent group-hover:ring-indigo-300 dark:group-hover:ring-indigo-600 transition-all duration-300">
                             <img
                               src={item.image}
                               alt="History item"
@@ -294,7 +325,7 @@ export default function ImageGenerator() {
                             />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-800 dark:text-gray-200 line-clamp-2 mb-1">
+                            <p className="text-sm font-medium text-gray-800 dark:text-gray-200 line-clamp-2 mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">
                               {item.prompt}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
