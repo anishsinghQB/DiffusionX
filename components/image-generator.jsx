@@ -13,7 +13,7 @@ export default function ImageGenerator() {
   const lastPromptRef = useRef("");
 
   useEffect(() => {
-    // hydrate history if needed later
+    // placeholder for potential hydration
   }, []);
 
   const generateMultiple = async (count = 4) => {
@@ -37,7 +37,6 @@ export default function ImageGenerator() {
         negative_prompt: "",
       };
 
-      // Fire requests in parallel
       const requests = Array.from({ length: count }).map(() =>
         fetch("/api/generate-image", {
           method: "POST",
@@ -51,7 +50,6 @@ export default function ImageGenerator() {
       );
 
       const results = await Promise.all(requests);
-
       setImages(results.map((src, i) => ({ id: i, src })));
       lastPromptRef.current = prompt.trim();
       setShowConversation(true);
@@ -88,6 +86,10 @@ export default function ImageGenerator() {
     a.remove();
   };
 
+  const downloadAll = () => {
+    images.forEach((im) => im.src && downloadImage(im.src));
+  };
+
   const regenerate = () => {
     if (!lastPromptRef.current) return;
     setPrompt(lastPromptRef.current);
@@ -95,109 +97,111 @@ export default function ImageGenerator() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-600 to-purple-600 text-gray-900">
+    <div className="min-h-screen w-full bg-[linear-gradient(180deg,#f3f7fb_0%,#eef5fb_50%)] text-gray-900">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Top bar with OpenXAI brand */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center text-indigo-600 font-bold">OX</div>
-            <div className="text-white font-semibold">OpenXAI</div>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white font-bold shadow-md">OX</div>
+            <div>
+              <div className="text-lg font-semibold text-slate-800">OpenXAI</div>
+              <div className="text-xs text-slate-500">AI Image Creator</div>
+            </div>
           </div>
-          <div className="text-white/90 text-sm">AI Image Creator</div>
+
+          <div className="text-sm text-slate-600">Try: “An astronaut walking through a galaxy of sunflowers”</div>
         </div>
 
-        {/* Conversation area */}
+        {/* Conversation / Cards area */}
         <div className="relative">
-          {/* user blue bubble top-right when conversation present */}
-          {showConversation && (
-            <div className="flex justify-end mb-6">
-              <div className="max-w-md bg-blue-500 text-white px-4 py-3 rounded-2xl shadow-lg">
-                {lastPromptRef.current}
+          {showConversation ? (
+            <>
+              {/* user bubble (right) */}
+              <div className="flex justify-end mb-4">
+                <div className="max-w-md text-white bg-blue-500 px-4 py-3 rounded-2xl shadow-lg">
+                  {lastPromptRef.current}
+                </div>
               </div>
-            </div>
-          )}
 
-          {/* assistant reply bubble */}
-          {showConversation && (
-            <div className="flex justify-start mb-4">
-              <div className="max-w-2xl bg-white rounded-2xl p-4 shadow-md text-gray-800">
-                <p className="mb-3">Sure, I’ll use Image Creator to draw that for you.</p>
+              {/* assistant card with 2x2 grid */}
+              <div className="flex justify-start mb-6">
+                <div className="w-full md:w-[720px] bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
+                  <p className="text-slate-700 mb-3">Sure, I’ll use Image Creator to draw that for you.</p>
 
-                {/* 2x2 grid */}
-                <div className="mt-2 grid grid-cols-2 gap-3">
-                  {images.length === 0 && !isGenerating && (
-                    <div className="col-span-2 text-sm text-gray-500">No images yet — generate to see results.</div>
-                  )}
+                  <div className="grid grid-cols-2 gap-3">
+                    {images.length === 0 && (
+                      <div className="col-span-2 text-sm text-slate-400">No results yet</div>
+                    )}
 
-                  {isGenerating && images.length > 0 && (
-                    Array.from({ length: images.length }).map((_, i) => (
-                      <div key={i} className="h-40 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <Loader2 className="animate-spin text-indigo-500" />
+                    {isGenerating && images.length > 0 && images.map((_, i) => (
+                      <div key={i} className="h-40 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100">
+                        <Loader2 className="animate-spin text-sky-500" />
                       </div>
-                    ))
-                  )}
+                    ))}
 
-                  {!isGenerating && images.map((im) => (
-                    <div key={im.id} className="rounded-md overflow-hidden bg-gray-50 border border-gray-200">
-                      <img src={im.src} alt={`result-${im.id}`} className="w-full h-40 object-cover" />
-                    </div>
-                  ))}
+                    {!isGenerating && images.map((im) => (
+                      <div key={im.id} className="rounded-md overflow-hidden bg-gray-50 border border-gray-100">
+                        <img src={im.src} alt={`result-${im.id}`} className="w-full h-40 object-cover" />
+                      </div>
+                    ))}
+                  </div>
 
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button className="text-sm text-sky-600 bg-sky-50 px-3 py-1 rounded-full">Change the astronaut to a cat</button>
+                    <button className="text-sm text-sky-600 bg-sky-50 px-3 py-1 rounded-full">Change the sunflowers to roses</button>
+                    <button className="text-sm text-sky-600 bg-sky-50 px-3 py-1 rounded-full">Add a moon in the background</button>
+                  </div>
+
+                  <div className="mt-3 text-xs text-slate-400">Made with Image Creator</div>
                 </div>
-
-                <div className="mt-3 flex items-center gap-2">
-                  <button className="text-sm text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Change the astronaut to a cat</button>
-                  <button className="text-sm text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Change the sunflowers to roses</button>
-                  <button className="text-sm text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Add a moon in the background</button>
-                </div>
-
-                <div className="mt-3 text-xs text-gray-400">Made with Image Creator</div>
               </div>
-            </div>
-          )}
-
-          {/* If no conversation yet, show a centered mock similar to Bing blank state */}
-          {!showConversation && (
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-12 text-center text-white/80 shadow-lg">
-              <h2 className="text-2xl font-semibold mb-2">Welcome to OpenXAI</h2>
-              <p className="max-w-2xl mx-auto">Type a prompt below to generate a set of creative images. Try: “An astronaut walking through a galaxy of sunflowers”.</p>
+            </>
+          ) : (
+            <div className="bg-white/60 rounded-2xl p-12 text-center shadow-md">
+              <h2 className="text-2xl font-semibold mb-2 text-slate-800">Welcome to OpenXAI</h2>
+              <p className="text-slate-600">Type a prompt below to generate a set of creative images.</p>
             </div>
           )}
         </div>
 
-        {/* Utility row for download/copy when images present */}
-        {images.length > 0 && (
-          <div className="mt-4 flex gap-3">
-            <button onClick={() => images.forEach((im) => im.src && downloadImage(im.src))} className="px-3 py-2 bg-white/90 rounded-md shadow">Download All</button>
-            <button onClick={copyPrompt} className="px-3 py-2 bg-white/90 rounded-md shadow">Copy Prompt</button>
-            <button onClick={regenerate} className="px-3 py-2 bg-white/90 rounded-md shadow">Regenerate</button>
-          </div>
-        )}
+        {/* Controls below card */}
+        <div className="mt-4 flex gap-3">
+          <button onClick={downloadAll} className="px-3 py-2 bg-white rounded-md shadow hover:scale-[1.01] transition">Download All</button>
+          <button onClick={copyPrompt} className="px-3 py-2 bg-white rounded-md shadow hover:scale-[1.01] transition">Copy Prompt</button>
+          <button onClick={regenerate} className="px-3 py-2 bg-white rounded-md shadow hover:scale-[1.01] transition">Regenerate</button>
+        </div>
+
       </div>
 
-      {/* Bottom centered pill input */}
+      {/* Bottom pill composer */}
       <form onSubmit={handleSubmit} className="fixed left-0 right-0 bottom-6 flex justify-center pointer-events-none">
-        <div className="pointer-events-auto flex items-center gap-3 bg-white rounded-full px-3 py-2 shadow-xl w-[min(880px,90%)]">
-          <button type="button" onClick={handleSubmit} className="bg-blue-600 text-white rounded-full p-3 shadow-md">
-            <Wand2 size={18} />
-          </button>
+        <div className="pointer-events-auto flex items-center gap-3 bg-white rounded-full px-4 py-2 shadow-2xl w-[min(920px,92%)]">
+          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white shadow">✦</div>
 
           <input
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Can you create me an image of an astronaut walking through a galaxy of sunflowers?"
-            className="flex-1 bg-transparent outline-none px-3 text-gray-800"
+            className="flex-1 bg-transparent outline-none px-3 text-slate-700 placeholder:text-slate-400"
           />
 
-          <button type="submit" disabled={isGenerating} className="bg-indigo-600 text-white px-4 py-2 rounded-full font-semibold">
-            {isGenerating ? <Loader2 className="animate-spin" /> : <span className="flex items-center gap-2"><Send size={14}/> Generate</span>}
+          <button type="button" onClick={() => generateMultiple(4)} className="rounded-full bg-gradient-to-br from-sky-500 to-indigo-600 text-white px-4 py-2 shadow-md flex items-center gap-2">
+            {isGenerating ? <Loader2 className="animate-spin" /> : <Send size={16} />}
+            <span className="font-semibold">Generate</span>
           </button>
         </div>
       </form>
 
+      {/* subtle helper floating button */}
       <div className="fixed left-6 bottom-6">
-        <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-xl">✦</div>
+        <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-cyan-400 rounded-full flex items-center justify-center text-white shadow-xl">✦</div>
       </div>
+
+      {/* small animations */}
+      <style jsx>{`
+        @keyframes pulseFast { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+        button:hover { transform: translateZ(0); }
+      `}</style>
     </div>
   );
 }
