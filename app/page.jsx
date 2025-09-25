@@ -17,7 +17,7 @@ export default function Home() {
               AI Image Generator
             </h2>
           </div>
-          <div className="w-1/2 mx-auto">
+          <div className="w-full md:w-1/2 mx-auto">
             <ImageGenerator />
           </div>
         </div>
