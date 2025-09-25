@@ -12,11 +12,6 @@ export default function Home() {
         </div>
 
         <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 mb-8">
-          <div className="flex items-center justify-center mb-6">
-            <h2 className="text-3xl font-bold text-white">
-              AI Image Generator
-            </h2>
-          </div>
           <div className="w-full md:w-1/2 mx-auto">
             <ImageGenerator />
           </div>
